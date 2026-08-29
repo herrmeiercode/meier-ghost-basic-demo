@@ -53,8 +53,15 @@ try {
     New-Item -Path (Join-Path $outputPath ".nojekyll") -ItemType File -Force | Out-Null
 
     # gssg misses root-relative theme assets on Windows, so fetch them explicitly.
-    $themeAssets = @("assets/css/screen.css", "assets/js/main.js")
-    foreach ($assetPath in $themeAssets) {
+    $requiredAssets = @(
+        "assets/css/screen.css",
+        "assets/js/main.js",
+        "public/cards.min.css",
+        "public/cards.min.js",
+        "public/comment-counts.min.js",
+        "public/member-attribution.min.js"
+    )
+    foreach ($assetPath in $requiredAssets) {
         $assetTarget = Join-Path $outputPath ($assetPath.Replace("/", "\\"))
         $assetDirectory = Split-Path -Parent $assetTarget
         New-Item -Path $assetDirectory -ItemType Directory -Force | Out-Null
