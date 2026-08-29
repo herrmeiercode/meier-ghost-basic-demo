@@ -76,6 +76,13 @@ try {
             $updatedContent = $fileContent.Replace($GhostUrl, $PublicUrl)
             $updatedContent = $updatedContent.Replace("/assets/", "$publicPath/assets/")
             $updatedContent = $updatedContent.Replace("/public/", "$publicPath/public/")
+
+            # Prefix root-relative links used by Ghost templates.
+            $rootRelativeAttributes = @("href", "src", "srcset", "action", "data-src")
+            foreach ($attribute in $rootRelativeAttributes) {
+                $updatedContent = $updatedContent.Replace(($attribute + "=\"/"), ($attribute + "=\"" + $publicPath + "/"))
+                $updatedContent = $updatedContent.Replace(($attribute + "='/"), ($attribute + "='" + $publicPath + "/"))
+            }
             if ($updatedContent -ne $fileContent) {
                 [System.IO.File]::WriteAllText($_.FullName, $updatedContent, $utf8NoBom)
             }
