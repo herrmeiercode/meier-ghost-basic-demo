@@ -77,7 +77,7 @@ try {
             # Prefix root-relative links used by Ghost templates.
             $rootRelativeAttributes = @("href", "src", "srcset", "action", "data-src")
             foreach ($attribute in $rootRelativeAttributes) {
-                $updatedContent = $updatedContent.Replace(($attribute + "=\`"/"), ($attribute + "=\`"" + $publicPath + "/"))
+                $updatedContent = $updatedContent.Replace(($attribute + '="/'), ($attribute + '="' + $publicPath + '/'))
                 $updatedContent = $updatedContent.Replace(($attribute + "='/"), ($attribute + "='" + $publicPath + "/"))
             }
             if ($updatedContent -ne $fileContent) {
