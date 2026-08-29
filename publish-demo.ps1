@@ -9,6 +9,14 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $outputPath = Join-Path $repoRoot $OutputDirectory
 
+# gssg expects Unix helper commands. Git for Windows already ships them.
+$gitUnixTools = Join-Path $env:ProgramFiles "Git\usr\bin"
+if (Test-Path $gitUnixTools) {
+    $env:Path = "$gitUnixTools;$env:Path"
+} else {
+    throw "Git Unix tools wurden nicht gefunden: $gitUnixTools"
+}
+
 Write-Host "Pruefe lokale Ghost-Installation unter $GhostUrl ..."
 try {
     $response = Invoke-WebRequest -Uri $GhostUrl -UseBasicParsing -TimeoutSec 10
