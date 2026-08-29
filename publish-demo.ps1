@@ -9,18 +9,18 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $outputPath = Join-Path $repoRoot $OutputDirectory
 
-Write-Host "Prüfe lokale Ghost-Installation unter $GhostUrl ..."
+Write-Host "Pruefe lokale Ghost-Installation unter $GhostUrl ..."
 try {
     $response = Invoke-WebRequest -Uri $GhostUrl -UseBasicParsing -TimeoutSec 10
 } catch {
-    throw "Ghost ist unter $GhostUrl nicht erreichbar. Starte Ghost zuerst mit 'ghost start'."
+    throw "Ghost ist unter $GhostUrl nicht erreichbar. Starte Ghost zuerst mit ghost.cmd start."
 }
 
 if ($response.StatusCode -ne 200) {
     throw "Ghost antwortet mit HTTP-Status $($response.StatusCode)."
 }
 
-if (-not (Get-Command wget -ErrorAction SilentlyContinue)) {
+if (-not (Get-Command wget.exe -ErrorAction SilentlyContinue)) {
     throw "Wget fehlt. Installiere es mit: winget install JernejSimoncic.Wget"
 }
 
@@ -28,7 +28,7 @@ if (Test-Path $outputPath) {
     $resolvedRoot = (Resolve-Path $repoRoot).Path
     $resolvedOutput = (Resolve-Path $outputPath).Path
     if (-not $resolvedOutput.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Der Ausgabeordner liegt unerwartet außerhalb des Repositorys."
+        throw "Der Ausgabeordner liegt ausserhalb des Repositorys."
     }
     Remove-Item -Path $outputPath -Recurse -Force
 }
@@ -36,7 +36,7 @@ if (Test-Path $outputPath) {
 Push-Location $repoRoot
 try {
     Write-Host "Erzeuge statische Demo ..."
-    npx --yes ghost-static-site-generator --domain $GhostUrl --url $PublicUrl --dest $OutputDirectory --fail-on-error
+    npx.cmd --yes ghost-static-site-generator --domain $GhostUrl --url $PublicUrl --dest $OutputDirectory --fail-on-error
 
     if ($LASTEXITCODE -ne 0) {
         throw "Der statische Export ist fehlgeschlagen."
@@ -48,7 +48,7 @@ try {
         Select-String -Pattern "localhost:2368" -SimpleMatch
 
     if ($localReferences) {
-        Write-Warning "Im Export wurden noch Localhost-Verweise gefunden. Bitte vor der Veröffentlichung prüfen."
+        Write-Warning "Im Export wurden noch Localhost-Verweise gefunden. Bitte vor der Veroeffentlichung pruefen."
         $localReferences | Select-Object -First 20
     } else {
         Write-Host "Keine Localhost-Verweise gefunden."
@@ -65,7 +65,7 @@ try {
         $changes = git status --porcelain -- docs
 
         if (-not $changes) {
-            Write-Host "Keine Änderungen vorhanden."
+            Write-Host "Keine Aenderungen vorhanden."
             exit 0
         }
 
@@ -76,9 +76,9 @@ try {
         git push origin main
         if ($LASTEXITCODE -ne 0) { throw "Git-Push fehlgeschlagen." }
 
-        Write-Host "Demo wurde zu GitHub übertragen."
+        Write-Host "Demo wurde zu GitHub uebertragen."
     } else {
-        Write-Host "Zum direkten Veröffentlichen erneut mit -Push ausführen."
+        Write-Host "Zum direkten Veroeffentlichen erneut mit -Push ausfuehren."
     }
 } finally {
     Pop-Location
