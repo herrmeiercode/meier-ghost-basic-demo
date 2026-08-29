@@ -1,0 +1,85 @@
+param(
+    [string]$GhostUrl = "http://localhost:2368",
+    [string]$PublicUrl = "https://herrmeiercode.github.io/meier-ghost-basic-demo",
+    [string]$OutputDirectory = "docs",
+    [switch]$Push
+)
+
+$ErrorActionPreference = "Stop"
+$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$outputPath = Join-Path $repoRoot $OutputDirectory
+
+Write-Host "Prüfe lokale Ghost-Installation unter $GhostUrl ..."
+try {
+    $response = Invoke-WebRequest -Uri $GhostUrl -UseBasicParsing -TimeoutSec 10
+} catch {
+    throw "Ghost ist unter $GhostUrl nicht erreichbar. Starte Ghost zuerst mit 'ghost start'."
+}
+
+if ($response.StatusCode -ne 200) {
+    throw "Ghost antwortet mit HTTP-Status $($response.StatusCode)."
+}
+
+if (-not (Get-Command wget -ErrorAction SilentlyContinue)) {
+    throw "Wget fehlt. Installiere es mit: winget install JernejSimoncic.Wget"
+}
+
+if (Test-Path $outputPath) {
+    $resolvedRoot = (Resolve-Path $repoRoot).Path
+    $resolvedOutput = (Resolve-Path $outputPath).Path
+    if (-not $resolvedOutput.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Der Ausgabeordner liegt unerwartet außerhalb des Repositorys."
+    }
+    Remove-Item -Path $outputPath -Recurse -Force
+}
+
+Push-Location $repoRoot
+try {
+    Write-Host "Erzeuge statische Demo ..."
+    npx --yes ghost-static-site-generator --domain $GhostUrl --url $PublicUrl --dest $OutputDirectory --fail-on-error
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Der statische Export ist fehlgeschlagen."
+    }
+
+    New-Item -Path (Join-Path $outputPath ".nojekyll") -ItemType File -Force | Out-Null
+
+    $localReferences = Get-ChildItem -Path $outputPath -Recurse -File |
+        Select-String -Pattern "localhost:2368" -SimpleMatch
+
+    if ($localReferences) {
+        Write-Warning "Im Export wurden noch Localhost-Verweise gefunden. Bitte vor der Veröffentlichung prüfen."
+        $localReferences | Select-Object -First 20
+    } else {
+        Write-Host "Keine Localhost-Verweise gefunden."
+    }
+
+    Write-Host "Export abgeschlossen: $outputPath"
+
+    if ($Push) {
+        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            throw "Git wurde nicht gefunden."
+        }
+
+        git add docs
+        $changes = git status --porcelain -- docs
+
+        if (-not $changes) {
+            Write-Host "Keine Änderungen vorhanden."
+            exit 0
+        }
+
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
+        git commit -m "Demo aktualisieren ($timestamp)"
+        if ($LASTEXITCODE -ne 0) { throw "Git-Commit fehlgeschlagen." }
+
+        git push origin main
+        if ($LASTEXITCODE -ne 0) { throw "Git-Push fehlgeschlagen." }
+
+        Write-Host "Demo wurde zu GitHub übertragen."
+    } else {
+        Write-Host "Zum direkten Veröffentlichen erneut mit -Push ausführen."
+    }
+} finally {
+    Pop-Location
+}
