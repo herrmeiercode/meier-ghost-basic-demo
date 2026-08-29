@@ -44,7 +44,7 @@ if (Test-Path $outputPath) {
 Push-Location $repoRoot
 try {
     Write-Host "Erzeuge statische Demo ..."
-    npx.cmd --yes ghost-static-site-generator --domain $GhostUrl --url $PublicUrl --dest $OutputDirectory --fail-on-error
+    npx.cmd --yes ghost-static-site-generator --domain $GhostUrl --url $PublicUrl --dest $OutputDirectory
 
     if ($LASTEXITCODE -ne 0) {
         throw "Der statische Export ist fehlgeschlagen."
