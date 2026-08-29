@@ -74,9 +74,6 @@ try {
         ForEach-Object {
             $fileContent = [System.IO.File]::ReadAllText($_.FullName)
             $updatedContent = $fileContent.Replace($GhostUrl, $PublicUrl)
-            $updatedContent = $updatedContent.Replace("/assets/", "$publicPath/assets/")
-            $updatedContent = $updatedContent.Replace("/public/", "$publicPath/public/")
-
             # Prefix root-relative links used by Ghost templates.
             $rootRelativeAttributes = @("href", "src", "srcset", "action", "data-src")
             foreach ($attribute in $rootRelativeAttributes) {
