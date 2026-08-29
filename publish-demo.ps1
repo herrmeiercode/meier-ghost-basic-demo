@@ -52,16 +52,32 @@ try {
 
     New-Item -Path (Join-Path $outputPath ".nojekyll") -ItemType File -Force | Out-Null
 
-    # Replace source URLs left in auxiliary text files such as Ghost Markdown output.
+    # gssg misses root-relative theme assets on Windows, so fetch them explicitly.
+    $themeAssets = @("assets/css/screen.css", "assets/js/main.js")
+    foreach ($assetPath in $themeAssets) {
+        $assetTarget = Join-Path $outputPath ($assetPath.Replace("/", "\\"))
+        $assetDirectory = Split-Path -Parent $assetTarget
+        New-Item -Path $assetDirectory -ItemType Directory -Force | Out-Null
+        Invoke-WebRequest -Uri "$GhostUrl/$assetPath" -UseBasicParsing -OutFile $assetTarget
+    }
+
+    $publicPath = ([System.Uri]$PublicUrl).AbsolutePath.TrimEnd("/")
+    if ([string]::IsNullOrWhiteSpace($publicPath)) {
+        $publicPath = ""
+    }
+
+    # Replace source URLs and root-relative paths for GitHub project pages.
     $textExtensions = @(".html", ".xml", ".txt", ".md", ".css", ".js", ".json")
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     Get-ChildItem -Path $outputPath -Recurse -File |
         Where-Object { $textExtensions -contains $_.Extension.ToLowerInvariant() } |
         ForEach-Object {
             $fileContent = [System.IO.File]::ReadAllText($_.FullName)
-            if ($fileContent.Contains($GhostUrl)) {
-                $fileContent = $fileContent.Replace($GhostUrl, $PublicUrl)
-                [System.IO.File]::WriteAllText($_.FullName, $fileContent, $utf8NoBom)
+            $updatedContent = $fileContent.Replace($GhostUrl, $PublicUrl)
+            $updatedContent = $updatedContent.Replace("/assets/", "$publicPath/assets/")
+            $updatedContent = $updatedContent.Replace("/public/", "$publicPath/public/")
+            if ($updatedContent -ne $fileContent) {
+                [System.IO.File]::WriteAllText($_.FullName, $updatedContent, $utf8NoBom)
             }
         }
 
