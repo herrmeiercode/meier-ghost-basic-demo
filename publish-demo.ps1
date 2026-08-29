@@ -52,6 +52,19 @@ try {
 
     New-Item -Path (Join-Path $outputPath ".nojekyll") -ItemType File -Force | Out-Null
 
+    # Replace source URLs left in auxiliary text files such as Ghost Markdown output.
+    $textExtensions = @(".html", ".xml", ".txt", ".md", ".css", ".js", ".json")
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    Get-ChildItem -Path $outputPath -Recurse -File |
+        Where-Object { $textExtensions -contains $_.Extension.ToLowerInvariant() } |
+        ForEach-Object {
+            $fileContent = [System.IO.File]::ReadAllText($_.FullName)
+            if ($fileContent.Contains($GhostUrl)) {
+                $fileContent = $fileContent.Replace($GhostUrl, $PublicUrl)
+                [System.IO.File]::WriteAllText($_.FullName, $fileContent, $utf8NoBom)
+            }
+        }
+
     $localReferences = Get-ChildItem -Path $outputPath -Recurse -File |
         Select-String -Pattern "localhost:2368" -SimpleMatch
 
